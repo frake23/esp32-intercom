@@ -1,0 +1,38 @@
+{
+  "name": "tgbot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "swc src -d dist --strip-leading-paths",
+    "dev": "concurrently \"pnpm run watch-compile\" \"pnpm run watch-dev\"",
+    "watch-compile": "swc src -w -d dist --strip-leading-paths",
+    "watch-dev": "nodemon --watch \"dist/**/*\" -e js ./dist/index.js",
+    "prepare": "cd .. && husky tgbot/.husky"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@swc/cli": "^0.4.1-nightly.20240914",
+    "@swc/core": "^1.7.26",
+    "@swc/plugin-transform-imports": "^3.0.3",
+    "@types/node": "^22.7.4",
+    "@types/ws": "^8.5.12",
+    "concurrently": "^9.0.1",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "nodemon": "^3.1.7",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1",
+    "mongoose": "^8.7.3",
+    "telegraf": "^4.16.3",
+    "ws": "^8.18.0"
+  },
+  "lint-staged": {
+    "**/*": "npx prettier --write --ignore-unknown"
+  }
+}
