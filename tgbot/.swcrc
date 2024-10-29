@@ -1,27 +1,27 @@
 {
-  "$schema": "http://json.schemastore.org/swcrc",
-  "module": {
-    "type": "es6",
-    "resolveFully": true
-  },
-  "jsc": {
-    "experimental": {
-      "plugins": [
-        [
-          "@swc/plugin-transform-imports",
-          {
-            "^\\.(.*?)$": {
-              "skipDefaultConversion": true,
-              "transform": ".{{matches.[1]}}.js"
-            }
-          }
-        ]
-      ]
+    "$schema": "http://json.schemastore.org/swcrc",
+    "module": {
+        "type": "es6",
+        "resolveFully": true
     },
-    "parser": {
-      "syntax": "typescript",
-      "topLevelAwait": true
-    },
-    "target": "esnext"
-  }
+    "jsc": {
+        "experimental": {
+            "plugins": [
+                [
+                    "@swc/plugin-transform-imports",
+                    {
+                        "^\\.(.*?)$": {
+                            "skipDefaultConversion": true,
+                            "transform": ".{{matches.[1]}}.js"
+                        }
+                    }
+                ]
+            ]
+        },
+        "parser": {
+            "syntax": "typescript",
+            "topLevelAwait": true
+        },
+        "target": "esnext"
+    }
 }
