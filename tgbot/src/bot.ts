@@ -4,7 +4,7 @@ import { CacheClient } from './cache';
 
 type BotContext = Context & { flat?: Flat };
 
-export const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN);
+export const bot = new Telegraf<BotContext>(process.env.BOT_TOKEN!);
 
 const registerFlat = async (ctx: BotContext) => {
     const key = `register:${ctx.chat!.id}`;

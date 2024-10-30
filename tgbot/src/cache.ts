@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_PATH);
+const redis = new Redis(process.env.REDIS_PATH!);
 
 export class CacheClient {
     static set(key: string, value: string | number | Buffer, seconds?: number) {
