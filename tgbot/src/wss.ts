@@ -147,10 +147,9 @@ const espCommandsMapping = {
 server.on('connection', (socket) => {
     console.log('Client connected');
 
-    currentCommand = 'start';
-
     // Handle incoming data from the client
     socket.on('data', async (data) => {
+        console.log(data.toString());
         if (currentCommand) {
             await espCommandsMapping[currentCommand](data);
         } else {

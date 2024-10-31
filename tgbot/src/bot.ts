@@ -41,7 +41,9 @@ const registerFlat = async (ctx: BotContext) => {
 
 bot.use(async (ctx, next) => {
     const flat = await flatsRepo.getByChatId(ctx.chat!.id);
-    if (!flat) {
+    const key = `register:${ctx.chat!.id}`;
+    const registerStarted = Number(await CacheClient.get(key));
+    if (!flat || registerStarted) {
         if ((await registerFlat(ctx)) == 0) {
             next();
         }
