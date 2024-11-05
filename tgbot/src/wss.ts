@@ -9,10 +9,16 @@ export let clientSocket: net.Socket | null = null;
 export const server = net.createServer();
 
 let currentSocket: net.Socket | null = null;
-let currentCommand: 'start' | 'photo' | 'cancel' | 'finish' | null = null;
+let currentCommand:
+    | 'start'
+    | 'photo'
+    | 'cancel'
+    | 'accept_ok'
+    | 'reject_ok'
+    | null = null;
 let currentFlat: number | null = null;
 
-const photoController = async () => {
+const createPhotoController = () => {
     // Variables to keep track of the incoming data
     let imageSize: number | null = null; // The size of the image to receive
     let imageBuffer: Buffer | null = null; // Buffer to store the image data
@@ -20,7 +26,7 @@ const photoController = async () => {
     let headerBuffer = Buffer.alloc(4); // Buffer to accumulate the image size header
     let headerBytesReceived = 0; // Number of header bytes received
 
-    return async (data: Buffer) => {
+    const retFunc = async (data: Buffer) => {
         let offset = 0; // Offset in the data buffer
 
         // Process the received data
@@ -74,11 +80,22 @@ const photoController = async () => {
                 // Check if we have received the full image
                 if (receivedBytes === imageSize) {
                     console.log('Image received completely');
-                    const flat = (await flatsRepo.getManyByNumber(123))[0];
-                    bot.telegram.sendPhoto(flat.chatId, {
-                        source: imageBuffer!,
-                    });
-
+                    const flats = await flatsRepo.getManyByNumber(currentFlat!);
+                    const promises = flats.map((flat) =>
+                        bot.telegram.sendPhoto(
+                            flat.chatId,
+                            { source: imageBuffer! },
+                            Markup.inlineKeyboard([
+                                Markup.button.callback('📸 Фото', 'photo'),
+                                Markup.button.callback('✅ Пустить', 'accept'),
+                                Markup.button.callback(
+                                    '❌ Не пускать',
+                                    'reject'
+                                ),
+                            ])
+                        )
+                    );
+                    await Promise.all(promises);
                     // Reset variables to receive the next image
                     imageSize = null;
                     imageBuffer = null;
@@ -89,29 +106,42 @@ const photoController = async () => {
             }
         }
     };
+
+    retFunc.reset = () => {
+        imageSize = null;
+        imageBuffer = null;
+        receivedBytes = 0;
+        headerBytesReceived = 0;
+        currentCommand = null;
+    };
+
+    return retFunc;
 };
+
+const photoController = createPhotoController();
 
 bot.action('photo', (ctx) => {
     if (!currentSocket || !ctx.flat || ctx.flat.number !== currentFlat) {
-        return ctx.sendMessage('Сессия сейчас неактивна');
+        return ctx.editMessageText('Сессия сейчас неактивна');
     }
     currentSocket.write('photo');
+    return ctx.editMessageText('📸 Ждем фото');
 });
 
 bot.action('accept', (ctx) => {
     if (!currentSocket || !ctx.flat || ctx.flat.number !== currentFlat) {
-        return ctx.sendMessage('Сессия сейчас неактивна');
+        return ctx.editMessageText('Сессия сейчас неактивна');
     }
     currentSocket.write('accept');
-    return ctx.editMessageText('✅ Пускаем');
+    return ctx.editMessageText('✅ Пускаем...');
 });
 
 bot.action('reject', (ctx) => {
     if (!currentSocket || !ctx.flat || ctx.flat.number !== currentFlat) {
-        return ctx.sendMessage('Сессия сейчас неактивна');
+        return ctx.editMessageText('Сессия сейчас неактивна');
     }
     currentSocket.write('reject');
-    return ctx.editMessageText('❌ Не пускаем');
+    return ctx.editMessageText('❌ Не пускаем...');
 });
 
 const startController = async (data: Buffer) => {
@@ -119,7 +149,6 @@ const startController = async (data: Buffer) => {
     const flats = await flatsRepo.getManyByNumber(currentFlat);
     if (flats.length === 0) {
         currentSocket?.write('not_found');
-        currentSocket?.end();
         currentSocket = null;
     } else {
         const promises = flats.map((flat) =>
@@ -139,21 +168,59 @@ const startController = async (data: Buffer) => {
     currentCommand = null;
 };
 
+const acceptOkController = async () => {
+    const flats = await flatsRepo.getManyByNumber(currentFlat!);
+    const promises = flats.map((flat) =>
+        bot.telegram.sendMessage(flat.chatId, '✅ Дверь открыта!')
+    );
+    await Promise.all(promises);
+    currentCommand = null;
+};
+
+const rejectOkController = async () => {
+    const flats = await flatsRepo.getManyByNumber(currentFlat!);
+    const promises = flats.map((flat) =>
+        bot.telegram.sendMessage(flat.chatId, '❌ Дверь не будет открыта!')
+    );
+    await Promise.all(promises);
+    currentCommand = null;
+};
+
+const cancelController = async () => {
+    const flats = await flatsRepo.getManyByNumber(currentFlat!);
+    const promises = flats.map((flat) =>
+        bot.telegram.sendMessage(flat.chatId, '❌ Вход отменен на домофоне')
+    );
+    await Promise.all(promises);
+    currentCommand = null;
+    currentFlat = null;
+    photoController.reset();
+};
+
 const espCommandsMapping = {
-    photo: photoController(),
+    photo: photoController,
     start: startController,
+    accept_ok: acceptOkController,
+    reject_ok: rejectOkController,
+    cancel: cancelController,
 };
 
 server.on('connection', (socket) => {
     console.log('Client connected');
+    currentSocket = socket;
 
     // Handle incoming data from the client
     socket.on('data', async (data) => {
-        console.log(data.toString());
+        const command = data.toString().trim() as any;
+        if (espCommandsMapping[command]) {
+            currentCommand = data.toString().trim() as any;
+            return;
+        }
+
         if (currentCommand) {
             await espCommandsMapping[currentCommand](data);
         } else {
-            currentCommand = data.toString().trim() as any;
+            console.error(`No command for data ${command}`);
         }
     });
 
