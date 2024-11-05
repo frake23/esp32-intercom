@@ -2,6 +2,7 @@ import net from 'node:net';
 import { bot } from './bot';
 import { flatsRepo } from './flats';
 import { Markup } from 'telegraf';
+import { inlineKeyboard } from 'telegraf/markup';
 
 export let clientSocket: net.Socket | null = null;
 
@@ -120,28 +121,31 @@ const createPhotoController = () => {
 
 const photoController = createPhotoController();
 
-bot.action('photo', (ctx) => {
+bot.action('photo', async (ctx) => {
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
     if (!currentSocket || !ctx.flat || ctx.flat.number !== currentFlat) {
-        return ctx.editMessageText('Сессия сейчас неактивна');
+        return ctx.reply('Сессия сейчас неактивна');
     }
     currentSocket.write('photo');
-    return ctx.editMessageText('📸 Ждем фото');
+    return ctx.reply('📸 Ждем фото');
 });
 
-bot.action('accept', (ctx) => {
+bot.action('accept', async (ctx) => {
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
     if (!currentSocket || !ctx.flat || ctx.flat.number !== currentFlat) {
-        return ctx.editMessageText('Сессия сейчас неактивна');
+        return ctx.reply('Сессия сейчас неактивна');
     }
     currentSocket.write('accept');
-    return ctx.editMessageText('✅ Пускаем...');
+    return ctx.reply('✅ Пускаем...');
 });
 
-bot.action('reject', (ctx) => {
+bot.action('reject', async (ctx) => {
+    await ctx.editMessageReplyMarkup({ inline_keyboard: [] });
     if (!currentSocket || !ctx.flat || ctx.flat.number !== currentFlat) {
-        return ctx.editMessageText('Сессия сейчас неактивна');
+        return ctx.reply('Сессия сейчас неактивна');
     }
     currentSocket.write('reject');
-    return ctx.editMessageText('❌ Не пускаем...');
+    return ctx.reply('❌ Не пускаем...');
 });
 
 const startController = async (data: Buffer) => {
