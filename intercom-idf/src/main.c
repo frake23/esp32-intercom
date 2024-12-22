@@ -10,12 +10,10 @@ const char* TAG = "APP_MAIN";
 
 
 void number_callback(char *s) {
-    // lock_keypad();
     ESP_LOGE(TAG, "%s", s);
-    esp_err_t ret = tcp_client_connect("89.169.141.94", 3001); // Replace with your server's IP and port
+    esp_err_t ret = tcp_client_connect("89.169.155.3", 3001); // Replace with your server's IP and port
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize TCP client");
-        // release_keypad();
         return;
     }
     tcp_client_send_string("start");
@@ -81,7 +79,7 @@ void app_main()
     write_pcf8574(0xFF);
 
     camera_init();
-    // init_flash();
+    init_flash();
 
     init_keypad(3000);
     keypad_register_number_entry_callback(*number_callback);
@@ -91,7 +89,6 @@ void app_main()
     tcp_client_register_command_callback("photo", *photo_command);
     tcp_client_register_command_callback("reject", *reject_command);
     tcp_client_register_command_callback("not_found", *not_found_command);
-    // number_callback("2");
     tcp_client_register_disconnect_callback(*disconnect_callback);
 
     while (1)
