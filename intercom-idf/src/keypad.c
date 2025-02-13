@@ -10,7 +10,7 @@
 #define KEYPAD_TASK_STACK_SIZE 4096
 #define KEYPAD_TASK_PRIORITY 5
 #define KEYPAD_SCAN_INTERVAL_MS 100 // Scan the keypad every 50 ms
-#define KEYPAD_MAX_BUFFER_SIZE 32  // Maximum number size
+#define KEYPAD_MAX_BUFFER_SIZE 32   // Maximum number size
 
 static const char *TAG = "keypad";
 
@@ -28,7 +28,8 @@ static uint32_t s_inactivity_timeout_ms = 0;
 
 // Mutex to protect shared resources
 static SemaphoreHandle_t s_mutex = NULL;
-static SemaphoreHandle_t lock_mutex = NULL;
+
+static bool scan = true;
 
 // Forward declarations of static functions
 static void keypad_scan_task(void *arg);
@@ -44,7 +45,6 @@ void init_keypad(uint32_t inactivity_timeout_ms)
 
     // Create a mutex for shared resources
     s_mutex = xSemaphoreCreateMutex();
-    lock_mutex = xSemaphoreCreateMutex();
 
     // Create inactivity timer
     s_inactivity_timer = xTimerCreate("keypad_inactivity_timer",
@@ -106,6 +106,12 @@ static void keypad_scan_task(void *arg)
     while (1)
     {
         char key = keypad_get_key_pressed();
+
+        if (!scan && key != '#')
+        {
+            vTaskDelay(pdMS_TO_TICKS(200));
+            continue;
+        }
 
         if (key != '\0')
         {
@@ -176,8 +182,11 @@ static void keypad_scan_task(void *arg)
  */
 static char keypad_get_key_pressed(void)
 {
-    lock_keypad();
-    release_keypad();
+    if (!scan)
+    {
+        return '\0';
+    }
+
     const char keymap[4][3] = {
         {'1', '2', '3'},
         {'4', '5', '6'},
@@ -192,7 +201,7 @@ static char keypad_get_key_pressed(void)
         col_val = ~(1 << col) & 0x0E; // Set one column low
 
         data = read_pcf8574();
-        write_pcf8574((row_val | col_val) + (data & 0x01));
+        write_pcf8574((row_val | col_val));
 
         // Read again
         data = read_pcf8574() & 0xF0;
@@ -220,10 +229,10 @@ static char keypad_get_key_pressed(void)
 
 void lock_keypad()
 {
-    xSemaphoreTake(lock_mutex, portMAX_DELAY);
+    scan = false;
 }
 
 void release_keypad()
 {
-    xSemaphoreGive(lock_mutex);
+    scan = true;
 }

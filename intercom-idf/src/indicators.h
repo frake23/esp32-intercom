@@ -9,4 +9,12 @@
 
 void init_flash();
 
+void init_led();
+
+void led_show(int ms);
+
+void led_start_blinking();
+
+void led_stop_blinking();
+
 #endif // INDICATORS_H

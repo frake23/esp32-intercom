@@ -14,7 +14,7 @@
  *
  * @param number The string of numbers entered by the user.
  */
-typedef void (*keypad_number_entry_callback_t)(const char* number);
+typedef void (*keypad_number_entry_callback_t)(const char *number);
 
 /**
  * @brief Callback type for the cancellation event.
